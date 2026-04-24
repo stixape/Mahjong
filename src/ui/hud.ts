@@ -80,24 +80,6 @@ export class HUD {
     this.toastEl = document.createElement('div');
     this.toastEl.className = 'toast';
 
-    if ('ontouchstart' in window) {
-      const fsBtn = document.createElement('button');
-      fsBtn.className = 'hud-btn hud-fs-btn';
-      fsBtn.textContent = '?';
-      fsBtn.title = 'Fullscreen';
-      fsBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> };
-        if (!document.fullscreenElement) {
-          if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-          else el.webkitRequestFullscreen?.();
-        } else {
-          document.exitFullscreen?.();
-        }
-      });
-      this.buttonsBar.appendChild(fsBtn);
-    }
-
     this.container.append(this.hudBar, this.buttonsBar, this.toastEl);
   }
 
