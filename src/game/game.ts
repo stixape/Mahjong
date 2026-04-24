@@ -559,9 +559,8 @@ export class Game {
       if (this.playMode === 'challenge' && result && this.activeLevel !== null) {
         const isFinalLevel = this.activeLevel >= 100;
         this.menu.showChallengeWin(
-          result.stars,
-          3,
-          result.stars < 3,
+          result.score,
+          result.timeTaken,
           !isFinalLevel,
           isFinalLevel ? 'Congratulations, you have completed Challenge mode!' : undefined,
         );

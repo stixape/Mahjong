@@ -19,11 +19,9 @@ export interface ProgressionProfile {
   unlockedLayouts: string[];
   unlockedSkins: string[];
   unlockedBackgrounds: string[];
-  levelStars: Record<number, 0 | 1 | 2 | 3>;
 }
 
 export interface LevelCompletionResult {
-  stars: 1 | 2 | 3;
   score: number;
   timeTaken: number;
   profile: ProgressionProfile;
@@ -68,19 +66,11 @@ const DEFAULT_PROFILE: ProgressionProfile = {
   unlockedLayouts: ['turtle'],
   unlockedSkins: ['classic'],
   unlockedBackgrounds: [progressionBackgrounds[0]?.assetID ?? 'classic'],
-  levelStars: {},
 };
 
 function clampLevel(level: number): number {
   if (!Number.isFinite(level)) return 1;
   return Math.max(1, Math.floor(level));
-}
-
-function clampStars(stars: number): 0 | 1 | 2 | 3 {
-  if (stars >= 3) return 3;
-  if (stars >= 2) return 2;
-  if (stars >= 1) return 1;
-  return 0;
 }
 
 export class ProgressionManager {
@@ -116,12 +106,10 @@ export class ProgressionManager {
 
   handleLevelComplete(score: number, timeTaken: number): LevelCompletionResult {
     const level = this.activeLevel;
-    const stars = this.calculateStars(score, timeTaken);
     const previousHighest = this.profile.highestLevel;
     const previousUnlocked = this.getUnlockedAssetIDs();
 
-    this.profile.levelStars[level] = clampStars(Math.max(this.profile.levelStars[level] ?? 0, stars));
-    this.profile.totalXP += this.calculateXP(score, stars);
+    this.profile.totalXP += this.calculateXP(score, timeTaken);
 
     if (level >= this.profile.highestLevel) {
       this.profile.highestLevel = Math.min(100, level + 1);
@@ -139,7 +127,6 @@ export class ProgressionManager {
     ));
 
     return {
-      stars,
       score,
       timeTaken,
       profile: this.getProfile(),
@@ -202,17 +189,11 @@ export class ProgressionManager {
     }, COMBO_WINDOW_MS);
   }
 
-  private calculateStars(score: number, timeTaken: number): 1 | 2 | 3 {
-    const level = this.activeLevelConfig;
-    const thresholds = level.starThresholds;
-    if (timeTaken > level.timeLimit) return 1;
-    if (score >= thresholds.threeStarScore && timeTaken <= thresholds.threeStarTime) return 3;
-    if (score >= thresholds.twoStarScore && timeTaken <= thresholds.twoStarTime) return 2;
-    return 1;
-  }
-
-  private calculateXP(score: number, stars: 1 | 2 | 3): number {
-    return stars * 100 + this.activeLevel * 10 + Math.floor(Math.max(0, score) / 25);
+  private calculateXP(score: number, timeTaken: number): number {
+    const levelBonus = this.activeLevel * 25;
+    const scoreBonus = Math.floor(Math.max(0, score) / 25);
+    const timeBonus = Math.max(0, Math.floor((this.activeLevelConfig.timeLimit - timeTaken) / 15));
+    return levelBonus + scoreBonus + timeBonus;
   }
 
   private syncUnlockedAssets(): void {
@@ -249,7 +230,6 @@ export class ProgressionManager {
         unlockedLayouts: Array.isArray(parsed.unlockedLayouts) ? parsed.unlockedLayouts : [],
         unlockedSkins: Array.isArray(parsed.unlockedSkins) ? parsed.unlockedSkins : [],
         unlockedBackgrounds: Array.isArray(parsed.unlockedBackgrounds) ? parsed.unlockedBackgrounds : [],
-        levelStars: this.normalizeStars(parsed.levelStars ?? {}),
       };
 
       this.profile = profile;
@@ -268,14 +248,6 @@ export class ProgressionManager {
     }
   }
 
-  private normalizeStars(stars: Record<number, 0 | 1 | 2 | 3>): Record<number, 0 | 1 | 2 | 3> {
-    const result: Record<number, 0 | 1 | 2 | 3> = {};
-    for (const [level, starCount] of Object.entries(stars)) {
-      result[clampLevel(Number(level))] = clampStars(starCount);
-    }
-    return result;
-  }
-
   private cloneProfile(profile: ProgressionProfile): ProgressionProfile {
     return {
       currentLevel: profile.currentLevel,
@@ -284,8 +256,6 @@ export class ProgressionManager {
       unlockedLayouts: [...profile.unlockedLayouts],
       unlockedSkins: [...profile.unlockedSkins],
       unlockedBackgrounds: [...profile.unlockedBackgrounds],
-      levelStars: { ...profile.levelStars },
     };
   }
 }
-

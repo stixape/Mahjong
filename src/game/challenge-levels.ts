@@ -1,13 +1,5 @@
 export type DifficultyBand = 'beginner' | 'intermediate' | 'expert';
 
-export interface StarThresholds {
-  oneStarScore: number;
-  twoStarScore: number;
-  threeStarScore: number;
-  twoStarTime: number;
-  threeStarTime: number;
-}
-
 export interface LevelGenerationOptions {
   seed: number;
   tileSetSize: number;
@@ -24,7 +16,6 @@ export interface ChallengeLevelConfig {
   undoLimit: number;
   targetMoveDensity: number;
   difficultyBand: DifficultyBand;
-  starThresholds: StarThresholds;
   generation: LevelGenerationOptions;
 }
 
@@ -69,7 +60,6 @@ export function createChallengeLevel(levelID: number): ChallengeLevelConfig {
       ? Math.max(2, 7 - Math.floor((normalizedLevel - 21) / 8))
       : normalizedLevel < 85 ? 1 : 0;
   const targetMoveDensity = Math.max(0.15, Number((0.9 - progress * 0.72).toFixed(2)));
-  const scoreBase = 1800 + normalizedLevel * 220;
 
   return {
     levelID: normalizedLevel,
@@ -81,13 +71,6 @@ export function createChallengeLevel(levelID: number): ChallengeLevelConfig {
     undoLimit,
     targetMoveDensity,
     difficultyBand: band,
-    starThresholds: {
-      oneStarScore: Math.round(scoreBase * 0.45),
-      twoStarScore: Math.round(scoreBase * 0.75),
-      threeStarScore: Math.round(scoreBase),
-      twoStarTime: Math.round(timeLimit * 0.85),
-      threeStarTime: Math.round(timeLimit * 0.62),
-    },
     generation: {
       seed: 100_000 + normalizedLevel * 9_973,
       tileSetSize,

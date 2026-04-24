@@ -1,3 +1,9 @@
+function formatTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${minutes}:${String(remainder).padStart(2, '0')}`;
+}
+
 export class MenuOverlay {
   private overlay: HTMLElement;
   private card: HTMLElement;
@@ -58,14 +64,22 @@ export class MenuOverlay {
     this.show();
   }
 
-  showChallengeWin(starsEarned: number, maxStars: number, canReplay: boolean, hasNextLevel: boolean, completionMessage?: string): void {
-    const stars = Array.from({ length: maxStars }, (_, index) => index < starsEarned ? '?' : '?').join(' ');
+  showChallengeWin(score: number, timeTaken: number, hasNextLevel: boolean, completionMessage?: string): void {
     this.card.innerHTML = `
       <div class="menu-title">Level Complete</div>
       <div class="menu-subtitle">${completionMessage ?? 'Challenge cleared!'}</div>
-      <div class="menu-title" style="font-size:24px; margin-bottom:16px">${stars}</div>
+      <div class="menu-stats" style="margin-bottom:20px">
+        <div class="menu-stat">
+          <div class="menu-stat-value">${score}</div>
+          <div class="menu-stat-label">Score</div>
+        </div>
+        <div class="menu-stat">
+          <div class="menu-stat-value">${formatTime(timeTaken)}</div>
+          <div class="menu-stat-label">Time</div>
+        </div>
+      </div>
       ${hasNextLevel ? '<button class="menu-btn primary" id="menu-next">Next Level</button>' : ''}
-      ${canReplay ? '<button class="menu-btn" id="menu-replay">Replay</button>' : ''}
+      <button class="menu-btn" id="menu-replay">Replay</button>
       <button class="menu-btn" id="menu-main">Main Menu</button>
     `;
 
