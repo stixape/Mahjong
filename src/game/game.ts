@@ -87,6 +87,7 @@ export class Game {
     this.settingsModal.onChange = (s) => {
       this.sound.setEnabled(s.soundEnabled);
       this.music.setEnabled(s.musicEnabled);
+      this.applyPerformanceMode(s.performanceMode);
       if (this.playMode !== 'challenge') {
         this.renderer.setTheme(s.theme);
         this.renderer.setTileTheme(s.tileTheme);
@@ -102,6 +103,7 @@ export class Game {
     const settings = loadSettings();
     this.sound.setEnabled(settings.soundEnabled);
     this.music.setEnabled(settings.musicEnabled);
+    this.applyPerformanceMode(settings.performanceMode);
     this.renderer.setTheme(settings.theme);
     this.renderer.setTileTheme(settings.tileTheme);
 
@@ -125,6 +127,16 @@ export class Game {
 
   start(): void {
     this.menu.showMainMenu(hasSavedGame('challenge'), hasSavedGame('freePlay'));
+  }
+
+  private applyPerformanceMode(enabled: boolean): void {
+    document.body.classList.toggle('low-performance', enabled);
+    this.renderer.setPerformanceMode(enabled);
+    if (this.hudTimer !== null || this.state === GameState.Playing || this.state === GameState.Paused) {
+      this.hud.showToast(enabled
+        ? 'Performance Mode enabled. Restart for full resolution change.'
+        : 'Performance Mode disabled. Restart for full resolution change.', 1800);
+    }
   }
 
   private openSettings(): void {

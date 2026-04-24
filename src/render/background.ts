@@ -62,6 +62,7 @@ export const BACKGROUND_THEMES: Record<string, BackgroundThemeDef> = {
 
 export interface ThemedBackground extends Container {
   setTheme(theme: string): void;
+  setPerformanceMode(on: boolean): void;
 }
 
 const firstKey = Object.keys(BACKGROUND_THEMES)[0];
@@ -71,6 +72,7 @@ export function createBackground(app: Application, theme?: string): ThemedBackgr
   const fallbackBg = new Graphics();
   let imageSprite: Sprite | null = null;
   let currentTheme = theme ?? firstKey;
+  let performanceMode = false;
 
   container.addChild(fallbackBg);
 
@@ -91,9 +93,15 @@ export function createBackground(app: Application, theme?: string): ThemedBackgr
     fallbackBg.rect(0, 0, app.screen.width, app.screen.height);
     fallbackBg.fill(0x1a472a);
     fallbackBg.visible = true;
+    if (imageSprite) imageSprite.visible = false;
   }
 
   async function showImage(url: string) {
+    if (performanceMode) {
+      drawFallback();
+      return;
+    }
+
     fallbackBg.visible = false;
     try {
       const texture: Texture = await Assets.load(url);
@@ -117,7 +125,7 @@ export function createBackground(app: Application, theme?: string): ThemedBackgr
   }
 
   function onResize() {
-    if (imageSprite && imageSprite.visible) {
+    if (!performanceMode && imageSprite && imageSprite.visible) {
       fitImageToScreen(imageSprite);
     } else {
       drawFallback();
@@ -129,6 +137,11 @@ export function createBackground(app: Application, theme?: string): ThemedBackgr
 
   container.setTheme = (newTheme: string) => {
     currentTheme = newTheme;
+    draw();
+  };
+
+  container.setPerformanceMode = (on: boolean) => {
+    performanceMode = on;
     draw();
   };
 

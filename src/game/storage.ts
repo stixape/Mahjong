@@ -26,6 +26,7 @@ export interface GameSettings {
   theme: string;
   layout: string;
   tileTheme: string;
+  performanceMode: boolean;
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
@@ -34,6 +35,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   theme: 'classic',
   layout: 'turtle',
   tileTheme: 'classic',
+  performanceMode: false,
 };
 
 function keyForMode(mode: PlayMode): string {

@@ -39,3 +39,19 @@ html, body {
   pointer-events: none;
   z-index: 10;
 }
+
+body.low-performance .hud-center,
+body.low-performance .hud-btn,
+body.low-performance .menu-overlay {
+  backdrop-filter: none !important;
+}
+
+body.low-performance .hud-btn,
+body.low-performance .menu-btn,
+body.low-performance .theme-option,
+body.low-performance .toast,
+body.low-performance .menu-overlay,
+body.low-performance .settings-toggle,
+body.low-performance .settings-toggle::after {
+  transition: none !important;
+}

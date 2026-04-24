@@ -85,6 +85,10 @@ export class SettingsModal {
         <span class="settings-label">Music</span>
         <button class="settings-toggle ${this.settings.musicEnabled ? 'on' : ''}" id="setting-music"></button>
       </div>
+      <div class="settings-row">
+        <span class="settings-label">Performance Mode <span style="font-size:11px; opacity:0.6">(restart for full effect)</span></span>
+        <button class="settings-toggle ${this.settings.performanceMode ? 'on' : ''}" id="setting-performance"></button>
+      </div>
       ${challengeMode ? '<div class="menu-subtitle" style="margin:16px 0 0">Challenge cosmetics unlock as you progress.</div>' : `
       <div class="settings-row" style="border-bottom: none; padding-bottom: 4px">
         <span class="settings-label">Background</span>
@@ -123,6 +127,14 @@ export class SettingsModal {
     musicBtn.addEventListener('click', () => {
       this.settings.musicEnabled = !this.settings.musicEnabled;
       musicBtn.classList.toggle('on', this.settings.musicEnabled);
+      saveSettings(this.settings);
+      this.onChange?.(this.settings);
+    });
+
+    const performanceBtn = card.querySelector('#setting-performance')!;
+    performanceBtn.addEventListener('click', () => {
+      this.settings.performanceMode = !this.settings.performanceMode;
+      performanceBtn.classList.toggle('on', this.settings.performanceMode);
       saveSettings(this.settings);
       this.onChange?.(this.settings);
     });

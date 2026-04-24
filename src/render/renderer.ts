@@ -32,26 +32,22 @@ export class GameRenderer {
   private xrayMode = false;
   private tileTheme: TileThemeConfig = getTileTheme('classic');
   private currentTiles: TileInstance[] = [];
+  private performanceMode = false;
 
   constructor(app: Application) {
     this.app = app;
-
-    // Background
     this.bg = createBackground(app);
     app.stage.addChild(this.bg);
 
-    // Board container
     this.boardContainer = new Container();
     app.stage.addChild(this.boardContainer);
 
     this.bufferContainer = new Container();
     app.stage.addChild(this.bufferContainer);
 
-    // Particle container (on top)
     this.particleContainer = new Container();
     app.stage.addChild(this.particleContainer);
 
-    // Handle resize
     window.addEventListener('resize', () => this.onResize());
   }
 
@@ -61,6 +57,15 @@ export class GameRenderer {
 
   setBufferTileClickHandler(handler: (tileId: number) => void): void {
     this.onBufferTileClick = handler;
+  }
+
+  setPerformanceMode(on: boolean): void {
+    this.performanceMode = on;
+    this.bg.setPerformanceMode(on);
+    if (this.currentTiles.length > 0) {
+      this.renderBoard(this.currentTiles);
+      this.renderBuffer(this.currentTiles.filter(t => !t.matched && t.inBuffer));
+    }
   }
 
   private computeLayout(positions: GridPosition[]) {
@@ -75,11 +80,9 @@ export class GameRenderer {
 
   renderBoard(tiles: TileInstance[]): void {
     this.currentTiles = tiles;
-    // Clear existing
     this.boardContainer.removeChildren();
     this.tileSprites.clear();
 
-    // Calculate bounds and scaling
     const boardTiles = tiles.filter(t => !t.matched && !t.inBuffer);
     const positions = boardTiles.map(t => t.position);
     if (positions.length === 0) return;
@@ -90,7 +93,6 @@ export class GameRenderer {
     this.boardMinX = layout.minX;
     this.boardMinY = layout.minY;
 
-    // Sort tiles: lower layer first, then by row (top first) for correct overlap
     const sorted = [...boardTiles].sort((a, b) => {
       if (a.position.layer !== b.position.layer) return a.position.layer - b.position.layer;
       if (a.position.row !== b.position.row) return a.position.row - b.position.row;
@@ -112,7 +114,6 @@ export class GameRenderer {
       this.boardContainer.addChild(sprite);
     }
 
-    // Position the board container
     this.boardContainer.x = this.boardOffsetX;
     this.boardContainer.y = this.boardOffsetY;
   }
@@ -152,7 +153,6 @@ export class GameRenderer {
     this.bufferContainer.y = y;
   }
 
-  /** Reposition existing sprites without recreating them (used on resize/orientation change) */
   repositionBoard(): void {
     if (this.currentTiles.length === 0) return;
 
@@ -169,7 +169,6 @@ export class GameRenderer {
     this.boardMinX = layout.minX;
     this.boardMinY = layout.minY;
 
-    // Build position lookup from current tiles
     const posById = new Map<number, GridPosition>();
     for (const tile of boardTiles) {
       if (!tile.matched && !tile.inBuffer) posById.set(tile.id, tile.position);
@@ -199,7 +198,6 @@ export class GameRenderer {
     for (const [id, sprite] of this.tileSprites) {
       sprite.setHighlight(id === selectedId);
       const isFree = freeTileIds.has(id);
-      // X-Ray ON: dim non-free tiles; X-Ray OFF: all tiles full opacity
       sprite.setDimmed(this.xrayMode && !isFree);
       sprite.eventMode = isFree ? 'static' : 'none';
     }
@@ -210,19 +208,14 @@ export class GameRenderer {
     const s2 = this.tileSprites.get(id2) ?? this.bufferSprites.get(id2);
     if (!s1 || !s2) return;
 
-    // Spawn particles at tile centers
-    const c1 = this.getTileCenter(id1, s1);
-    const c2 = this.getTileCenter(id2, s2);
-    const cx1 = c1.x;
-    const cy1 = c1.y;
-    const cx2 = c2.x;
-    const cy2 = c2.y;
-    spawnMatchParticles(this.particleContainer, cx1, cy1, this.app.ticker);
-    spawnMatchParticles(this.particleContainer, cx2, cy2, this.app.ticker);
+    if (!this.performanceMode) {
+      const c1 = this.getTileCenter(id1, s1);
+      const c2 = this.getTileCenter(id2, s2);
+      spawnMatchParticles(this.particleContainer, c1.x, c1.y, this.app.ticker);
+      spawnMatchParticles(this.particleContainer, c2.x, c2.y, this.app.ticker);
+      await animateTileMatch(s1, s2, this.app.ticker);
+    }
 
-    await animateTileMatch(s1, s2, this.app.ticker);
-
-    // Remove sprites
     s1.parent?.removeChild(s1);
     s2.parent?.removeChild(s2);
     s1.destroy();
@@ -243,11 +236,13 @@ export class GameRenderer {
   }
 
   async animateSelect(tileId: number): Promise<void> {
+    if (this.performanceMode) return;
     const sprite = this.tileSprites.get(tileId);
     if (sprite) await animateTileSelect(sprite, this.app.ticker);
   }
 
   async animateInvalid(tileId: number): Promise<void> {
+    if (this.performanceMode) return;
     const sprite = this.tileSprites.get(tileId);
     if (sprite) await animateInvalidSelection(sprite, this.app.ticker);
   }
@@ -261,10 +256,11 @@ export class GameRenderer {
     setTimeout(() => {
       if (s1) s1.setHighlight(false);
       if (s2) s2.setHighlight(false);
-    }, 1500);
+    }, this.performanceMode ? 900 : 1500);
   }
 
   playNewGameEffect(): void {
+    if (this.performanceMode) return;
     spawnNewGameSparkles(
       this.particleContainer,
       this.app.screen.width,
@@ -279,19 +275,16 @@ export class GameRenderer {
 
   setTileTheme(themeKey: string): void {
     this.tileTheme = getTileTheme(themeKey);
-    // Re-render if we have tiles
     if (this.currentTiles.length > 0) {
       this.renderBoard(this.currentTiles);
       this.renderBuffer(this.currentTiles.filter(t => !t.matched && t.inBuffer));
     }
   }
 
-  /** Update tile theme without triggering a re-render (use before renderBoard) */
   setTileThemeQuiet(themeKey: string): void {
     this.tileTheme = getTileTheme(themeKey);
   }
 
   private onResize(): void {
-    // Re-render will be triggered by the game controller
   }
 }
